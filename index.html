@@ -44,8 +44,8 @@
           <div id="offset-group" class="form-group mt-4" hidden>
             <label for="offset"
               >Offset: (in hex notation, default:0) | current decimal value:
-              <span id="offsetDEC"></span
-            ></label>
+              <span id="offsetDEC">0</span></label
+            >
             <input
               type="text"
               class="form-control"
@@ -56,9 +56,8 @@
           </div>
           <div id="csv" class="form-group mt-4" hidden>
             <label for="values"
-              >Values: (address,byte : both in hex notation) Changes:<span
-                id="changes"
-              ></span
+              >Values: (address,byte : both in hex notation) | changes:
+              <span id="changes"></span
             ></label>
             <textarea
               class="form-control"
@@ -66,6 +65,12 @@
               name="values"
               rows="5"
             ></textarea>
+
+            <small class="form-text text-muted"
+              >md5:
+              <span id="md5New"></span>
+            </small>
+
             <a id="download_link" download="" href="””" hidden
               >Save edited file</a
             >
@@ -113,6 +118,7 @@
             document.getElementById("offset-group").removeAttribute("hidden");
 
             newFileContent = originalFileContent;
+            generateNewFile(document.getElementById("values").value); //-----------------
           };
           reader.readAsText(file);
         }
@@ -135,6 +141,7 @@
         document
           .getElementById("download_link")
           .setAttribute("hidden", "hidden");
+
         var csvIndex;
         var csvData;
         newFileContent = originalFileContent;
@@ -150,13 +157,8 @@
             csvIndex = Number("0x" + line.split(/[,:;-]/)[0]) - offset;
             csvData = Number("0x" + line.split(/[,:;-]/)[1]);
             console.log(newFileContent.length);
-            if (csvIndex < newFileContent.length) {
+            if (csvIndex >= 0 && csvIndex < newFileContent.length) {
               changes++;
-
-              document
-                .getElementById("download_link")
-                .removeAttribute("hidden");
-
               newFileContent = setCharAt(newFileContent, csvIndex, csvData, 0);
               console.log(
                 `Line ${
@@ -166,10 +168,16 @@
             }
           }
         }
+        if (changes > 0) {
+          document.getElementById("download_link").removeAttribute("hidden");
+        } else {
+          document
+            .getElementById("download_link")
+            .setAttribute("hidden", "hidden");
+        }
 
         document.getElementById("changes").innerHTML = changes;
         document.getElementById("file-content").innerHTML = newFileContent;
-        console.log(`Changes: ${changes}`);
 
         // ---------------- DOWNLOAD LINK GENERATOR (BLOB)
         data = new Blob([newFileContent], { type: "application/octet-stream" });
@@ -178,6 +186,8 @@
           .getElementById("download_link")
           .setAttribute("download", originalFileName);
         document.getElementById("download_link").href = url;
+
+        console.log(`Changes: ${changes}`);
       }
       // ---------------- VALUES INPUT EVENT
       document.getElementById("values").oninput = () => {
@@ -187,9 +197,7 @@
       // ---------------- OFFSET INPUT EVENT
       document.getElementById("offset").oninput = () => {
         offset = Number("0x" + document.getElementById("offset").value);
-        if (isNaN(offset)) {
-          offset = 0;
-        }
+        if (isNaN(offset)) offset = 0;
         document.getElementById("offsetDEC").innerHTML = offset;
         generateNewFile(document.getElementById("values").value);
         console.log(offset); // Do something
