@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>File Upload Form</title>
+    <title>File HEX Edit - FedeKrum</title>
     <link
       rel="stylesheet"
       href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
@@ -32,8 +32,8 @@
                 style="display: none"
               />
               <small class="form-text text-muted"
-                >file name:
-                <span id="filename"></span>
+                >file name: <span id="filename"></span> | file size:
+                <span id="filelength"></span> bytes
               </small>
               <small class="form-text text-muted"
                 >md5:
@@ -42,7 +42,10 @@
             </div>
           </div>
           <div id="offset-group" class="form-group mt-4" hidden>
-            <label for="offset">Offset: (in hex notation, default:0)</label>
+            <label for="offset"
+              >Offset: (in hex notation, default:0) | current decimal value:
+              <span id="offsetDEC"></span
+            ></label>
             <input
               type="text"
               class="form-control"
@@ -63,12 +66,8 @@
               name="values"
               rows="5"
             ></textarea>
-            <a
-              id="download_link"
-              download="my_exported_file.bin"
-              href="””"
-              hidden
-              >Download File</a
+            <a id="download_link" download="" href="””" hidden
+              >Save edited file</a
             >
           </div>
           <pre><div id="file-content"></div></pre>
@@ -81,7 +80,7 @@
 
     <script>
       var originalFileContent;
-      var originalFileName;
+      var originalFileName = " ";
       var newFileContent;
       var md5Hash;
       var md5FileHash;
@@ -89,7 +88,8 @@
       var changes;
       var text;
       var data;
-      var offset;
+      var offset = 0;
+      var fileLength = 0;
 
       function handleFileSelect(event) {
         event.stopPropagation();
@@ -101,11 +101,14 @@
           var reader = new FileReader();
           reader.onload = function (event) {
             originalFileContent = event.target.result;
+            fileLength = originalFileContent.length;
             md5FileHash = CryptoJS.MD5(originalFileContent).toString();
             document.getElementById("file-content").innerHTML =
               originalFileContent;
             document.getElementById("md5").innerHTML = md5FileHash;
             document.getElementById("filename").innerHTML = originalFileName;
+
+            document.getElementById("filelength").innerHTML = fileLength;
             document.getElementById("csv").removeAttribute("hidden");
             document.getElementById("offset-group").removeAttribute("hidden");
 
@@ -144,7 +147,7 @@
           const line = lines[i].replace(/\s/g, ""); // Remove all whitespace from line
 
           if (hexPairRegex.test(line)) {
-            csvIndex = Number("0x" + line.split(/[,:;-]/)[0]);
+            csvIndex = Number("0x" + line.split(/[,:;-]/)[0]) - offset;
             csvData = Number("0x" + line.split(/[,:;-]/)[1]);
             console.log(newFileContent.length);
             if (csvIndex < newFileContent.length) {
@@ -168,7 +171,7 @@
         document.getElementById("file-content").innerHTML = newFileContent;
         console.log(`Changes: ${changes}`);
 
-        // Download
+        // ---------------- DOWNLOAD LINK GENERATOR (BLOB)
         data = new Blob([newFileContent], { type: "application/octet-stream" });
         url = window.URL.createObjectURL(data);
         document
@@ -176,16 +179,19 @@
           .setAttribute("download", originalFileName);
         document.getElementById("download_link").href = url;
       }
-
+      // ---------------- VALUES INPUT EVENT
       document.getElementById("values").oninput = () => {
         generateNewFile(document.getElementById("values").value);
-
-        //console.log(document.getElementById("values").value); // Do something
       };
 
+      // ---------------- OFFSET INPUT EVENT
       document.getElementById("offset").oninput = () => {
-        offset = document.getElementById("offset").value;
-
+        offset = Number("0x" + document.getElementById("offset").value);
+        if (isNaN(offset)) {
+          offset = 0;
+        }
+        document.getElementById("offsetDEC").innerHTML = offset;
+        generateNewFile(document.getElementById("values").value);
         console.log(offset); // Do something
       };
     </script>
